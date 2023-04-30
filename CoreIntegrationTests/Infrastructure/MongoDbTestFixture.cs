@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using MongoDbGenericRepository.Abstractions;
 
 namespace CoreIntegrationTests.Infrastructure
 {
@@ -11,7 +12,6 @@ namespace CoreIntegrationTests.Infrastructure
         where T : IDocument<TKey>, new()
         where TKey : IEquatable<TKey>
     {
-
         public IMongoDbContext Context;
 
         public MongoDbTestFixture()
@@ -24,7 +24,6 @@ namespace CoreIntegrationTests.Infrastructure
 
         public virtual void Dispose()
         {
-
             if (DocsToDelete.Any())
             {
                 TestRepository.Instance.DeleteMany<T, TKey>(DocsToDelete.ToList());
@@ -47,6 +46,7 @@ namespace CoreIntegrationTests.Infrastructure
                 docs.Add(doc);
                 DocsToDelete.Add(doc);
             }
+
             return docs;
         }
     }

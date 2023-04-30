@@ -35,12 +35,14 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="id">The Id of the document you want to get.</param>
         /// <param name="partitionKey">An optional partition key.</param>
         /// <param name="cancellationToken">An optional cancellation Token.</param>
-        public async virtual Task<TDocument> GetByIdAsync<TDocument, TKey>(TKey id, string partitionKey = null, CancellationToken cancellationToken = default)
+        public async virtual Task<TDocument> GetByIdAsync<TDocument, TKey>(TKey id, string partitionKey = null,
+            CancellationToken cancellationToken = default)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
             var filter = Builders<TDocument>.Filter.Eq("Id", id);
-            return await HandlePartitioned<TDocument, TKey>(partitionKey).Find(filter).FirstOrDefaultAsync(cancellationToken);
+            return await HandlePartitioned<TDocument, TKey>(partitionKey).Find(filter)
+                .FirstOrDefaultAsync(cancellationToken: cancellationToken);
         }
 
         /// <summary>
@@ -67,13 +69,16 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="findOption">A mongodb filter option.</param>
         /// <param name="partitionKey">An optional partition key.</param>
         /// <param name="cancellationToken">An optional cancellation Token.</param>
-        public virtual Task<TDocument> GetOneAsync<TDocument, TKey>(FilterDefinition<TDocument> condition, FindOptions findOption = null,
+        public virtual async Task<TDocument> GetOneAsync<TDocument, TKey>(FilterDefinition<TDocument> condition,
+            FindOptions<TDocument, TDocument> findOption = null,
             string partitionKey = null,
             CancellationToken cancellationToken = default)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
-            return HandlePartitioned<TDocument, TKey>(partitionKey).Find(condition, findOption).FirstOrDefaultAsync(cancellationToken); 
+            var collection = HandlePartitioned<TDocument, TKey>(partitionKey);
+            var find = await collection.FindAsync(condition, findOption, cancellationToken);
+            return await find.FirstOrDefaultAsync(cancellationToken: cancellationToken);
         }
 
         /// <summary>
@@ -84,11 +89,12 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="condition">A mongodb filter definition.</param>
         /// <param name="findOption">A mongodb filter option.</param>
         /// <param name="partitionKey">An optional partition key.</param>
-        public virtual TDocument GetOne<TDocument, TKey>(FilterDefinition<TDocument> condition, FindOptions findOption = null, string partitionKey = null)
+        public virtual TDocument GetOne<TDocument, TKey>(FilterDefinition<TDocument> condition,
+            FindOptions findOption = null, string partitionKey = null)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
-            return HandlePartitioned<TDocument, TKey>(partitionKey).Find(condition, findOption).FirstOrDefault(); 
+            return HandlePartitioned<TDocument, TKey>(partitionKey).Find(condition, findOption).FirstOrDefault();
         }
 
         /// <summary>
@@ -99,11 +105,14 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="filter">A LINQ expression filter.</param>
         /// <param name="partitionKey">An optional partition key.</param>
         /// <param name="cancellationToken">An optional cancellation Token.</param>
-        public async virtual Task<TDocument> GetOneAsync<TDocument, TKey>(Expression<Func<TDocument, bool>> filter, string partitionKey = null, CancellationToken cancellationToken = default)
+        public virtual async Task<TDocument> GetOneAsync<TDocument, TKey>(Expression<Func<TDocument, bool>> filter,
+            string partitionKey = null, CancellationToken cancellationToken = default)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
-            return await HandlePartitioned<TDocument, TKey>(partitionKey).Find(filter).FirstOrDefaultAsync(cancellationToken);
+            var collection = HandlePartitioned<TDocument, TKey>(partitionKey);
+            var find = await collection.FindAsync(filter, cancellationToken: cancellationToken);
+            return await find.FirstOrDefaultAsync(cancellationToken: cancellationToken);
         }
 
         /// <summary>
@@ -113,7 +122,8 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <typeparam name="TKey">The type of the primary key for a Document.</typeparam>
         /// <param name="filter">A LINQ expression filter.</param>
         /// <param name="partitionKey">An optional partition key.</param>
-        public virtual TDocument GetOne<TDocument, TKey>(Expression<Func<TDocument, bool>> filter, string partitionKey = null)
+        public virtual TDocument GetOne<TDocument, TKey>(Expression<Func<TDocument, bool>> filter,
+            string partitionKey = null)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
@@ -127,7 +137,8 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <typeparam name="TKey">The type of the primary key for a Document.</typeparam>
         /// <param name="filter">A LINQ expression filter.</param>
         /// <param name="partitionKey">An optional partition key.</param>
-        public virtual IFindFluent<TDocument, TDocument> GetCursor<TDocument, TKey>(Expression<Func<TDocument, bool>> filter, string partitionKey = null)
+        public virtual IFindFluent<TDocument, TDocument> GetCursor<TDocument, TKey>(
+            Expression<Func<TDocument, bool>> filter, string partitionKey = null)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
@@ -143,12 +154,14 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="countOption">A mongodb counting option.</param>
         /// <param name="partitionKey">An optional partition key.</param>
         /// <param name="cancellationToken">An optional cancellation Token.</param>
-        public virtual async Task<bool> AnyAsync<TDocument, TKey>(FilterDefinition<TDocument> condition, CountOptions countOption = null, string partitionKey = null,
+        public virtual async Task<bool> AnyAsync<TDocument, TKey>(FilterDefinition<TDocument> condition,
+            CountOptions countOption = null, string partitionKey = null,
             CancellationToken cancellationToken = default)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
-            var count = await HandlePartitioned<TDocument, TKey>(partitionKey).CountDocumentsAsync(condition, countOption, cancellationToken);
+            var count = await HandlePartitioned<TDocument, TKey>(partitionKey)
+                .CountDocumentsAsync(condition, countOption, cancellationToken);
             return count > 0;
         }
 
@@ -177,11 +190,13 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="filter">A LINQ expression filter.</param>
         /// <param name="partitionKey">An optional partition key.</param>
         /// <param name="cancellationToken">An optional cancellation Token.</param>
-        public async virtual Task<bool> AnyAsync<TDocument, TKey>(Expression<Func<TDocument, bool>> filter, string partitionKey = null, CancellationToken cancellationToken = default)
+        public async virtual Task<bool> AnyAsync<TDocument, TKey>(Expression<Func<TDocument, bool>> filter,
+            string partitionKey = null, CancellationToken cancellationToken = default)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
-            var count = await HandlePartitioned<TDocument, TKey>(partitionKey).CountDocumentsAsync(filter, cancellationToken: cancellationToken);
+            var count = await HandlePartitioned<TDocument, TKey>(partitionKey)
+                .CountDocumentsAsync(filter, cancellationToken: cancellationToken);
             return (count > 0);
         }
 
@@ -209,12 +224,15 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="findOption">A mongodb filter option.</param>
         /// <param name="partitionKey">An optional partition key.</param>
         /// <param name="cancellationToken">An optional cancellation Token.</param>
-        public virtual Task<List<TDocument>> GetAllAsync<TDocument, TKey>(FilterDefinition<TDocument> condition,
-            FindOptions findOption = null, string partitionKey = null, CancellationToken cancellationToken = default)
+        public virtual async Task<List<TDocument>> GetAllAsync<TDocument, TKey>(FilterDefinition<TDocument> condition,
+            FindOptions<TDocument, TDocument> findOption = null, string partitionKey = null,
+            CancellationToken cancellationToken = default)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
-            return HandlePartitioned<TDocument, TKey>(partitionKey).Find(condition, findOption).ToListAsync(cancellationToken);
+            var collection = HandlePartitioned<TDocument, TKey>(partitionKey);
+            var find = await collection.FindAsync(condition, findOption, cancellationToken);
+            return await find.ToListAsync(cancellationToken);
         }
 
         /// <summary>
@@ -225,7 +243,8 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="condition">A mongodb filter definition.</param>
         /// <param name="findOption">A mongodb filter option.</param>
         /// <param name="partitionKey">An optional partition key.</param>
-        public virtual List<TDocument> GetAll<TDocument, TKey>(FilterDefinition<TDocument> condition, FindOptions findOption = null,
+        public virtual List<TDocument> GetAll<TDocument, TKey>(FilterDefinition<TDocument> condition,
+            FindOptions findOption = null,
             string partitionKey = null)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
@@ -241,11 +260,15 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="filter">A LINQ expression filter.</param>
         /// <param name="partitionKey">An optional partition key.</param>
         /// <param name="cancellationToken">An optional cancellation Token.</param>
-        public async virtual Task<List<TDocument>> GetAllAsync<TDocument, TKey>(Expression<Func<TDocument, bool>> filter, string partitionKey = null, CancellationToken cancellationToken = default)
+        public virtual async Task<List<TDocument>> GetAllAsync<TDocument, TKey>(
+            Expression<Func<TDocument, bool>> filter, string partitionKey = null,
+            CancellationToken cancellationToken = default)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
-            return await HandlePartitioned<TDocument, TKey>(partitionKey).Find(filter).ToListAsync(cancellationToken);
+            var collection = HandlePartitioned<TDocument, TKey>(partitionKey);
+            var find = await collection.FindAsync(filter, cancellationToken: cancellationToken);
+            return await find.ToListAsync(cancellationToken);
         }
 
         /// <summary>
@@ -255,7 +278,8 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <typeparam name="TKey">The type of the primary key for a Document.</typeparam>
         /// <param name="filter">A LINQ expression filter.</param>
         /// <param name="partitionKey">An optional partition key.</param>
-        public virtual List<TDocument> GetAll<TDocument, TKey>(Expression<Func<TDocument, bool>> filter, string partitionKey = null)
+        public virtual List<TDocument> GetAll<TDocument, TKey>(Expression<Func<TDocument, bool>> filter,
+            string partitionKey = null)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
@@ -271,12 +295,14 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="countOption">A mongodb counting option.</param>
         /// <param name="partitionKey">An optional partitionKey</param>
         /// <param name="cancellationToken">An optional cancellation Token.</param>
-        public virtual Task<long> CountAsync<TDocument, TKey>(FilterDefinition<TDocument> condition, CountOptions countOption = null,
+        public virtual async Task<long> CountAsync<TDocument, TKey>(FilterDefinition<TDocument> condition,
+            CountOptions countOption = null,
             string partitionKey = null, CancellationToken cancellationToken = default)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
-            return HandlePartitioned<TDocument, TKey>(partitionKey).CountDocumentsAsync(condition, countOption, cancellationToken);
+            return await HandlePartitioned<TDocument, TKey>(partitionKey)
+                .CountDocumentsAsync(condition, countOption, cancellationToken);
         }
 
         /// <summary>
@@ -287,7 +313,8 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="condition">A mongodb filter definition.</param>
         /// <param name="countOption">A mongodb counting option.</param>
         /// <param name="partitionKey">An optional partitionKey</param>
-        public virtual long Count<TDocument, TKey>(FilterDefinition<TDocument> condition, CountOptions countOption = null,
+        public virtual long Count<TDocument, TKey>(FilterDefinition<TDocument> condition,
+            CountOptions countOption = null,
             string partitionKey = null)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
@@ -303,11 +330,13 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="filter">A LINQ expression filter.</param>
         /// <param name="partitionKey">An optional partitionKey</param>
         /// <param name="cancellationToken">An optional cancellation Token.</param>
-        public async virtual Task<long> CountAsync<TDocument, TKey>(Expression<Func<TDocument, bool>> filter, string partitionKey = null, CancellationToken cancellationToken = default)
+        public virtual async Task<long> CountAsync<TDocument, TKey>(Expression<Func<TDocument, bool>> filter,
+            string partitionKey = null, CancellationToken cancellationToken = default)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
-            return await HandlePartitioned<TDocument, TKey>(partitionKey).CountDocumentsAsync(filter, cancellationToken: cancellationToken);
+            return await HandlePartitioned<TDocument, TKey>(partitionKey)
+                .CountDocumentsAsync(filter, cancellationToken: cancellationToken);
         }
 
         /// <summary>
@@ -337,14 +366,16 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="maxValueSelector">A property selector to order by descending.</param>
         /// <param name="partitionKey">An optional partitionKey.</param>
         /// <param name="cancellationToken">An optional cancellation Token.</param>
-        public async virtual Task<TDocument> GetByMaxAsync<TDocument, TKey>(Expression<Func<TDocument, bool>> filter, Expression<Func<TDocument, object>> maxValueSelector, string partitionKey = null, CancellationToken cancellationToken = default)
+        public virtual async Task<TDocument> GetByMaxAsync<TDocument, TKey>(Expression<Func<TDocument, bool>> filter,
+            Expression<Func<TDocument, object>> maxValueSelector, string partitionKey = null,
+            CancellationToken cancellationToken = default)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
             return await GetCollection<TDocument, TKey>(partitionKey).Find(Builders<TDocument>.Filter.Where(filter))
-                                                                     .SortByDescending(maxValueSelector)
-                                                                     .Limit(1)
-                                                                     .FirstOrDefaultAsync(cancellationToken);
+                .SortByDescending(maxValueSelector)
+                .Limit(1)
+                .FirstOrDefaultAsync(cancellationToken);
         }
 
         /// <summary>
@@ -355,14 +386,15 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="filter">A LINQ expression filter.</param>
         /// <param name="maxValueSelector">A property selector to order by descending.</param>
         /// <param name="partitionKey">An optional partitionKey.</param>
-        public virtual TDocument GetByMax<TDocument, TKey>(Expression<Func<TDocument, bool>> filter, Expression<Func<TDocument, object>> maxValueSelector, string partitionKey = null)
+        public virtual TDocument GetByMax<TDocument, TKey>(Expression<Func<TDocument, bool>> filter,
+            Expression<Func<TDocument, object>> maxValueSelector, string partitionKey = null)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
             return GetCollection<TDocument, TKey>(partitionKey).Find(Builders<TDocument>.Filter.Where(filter))
-                                                               .SortByDescending(maxValueSelector)
-                                                               .Limit(1)
-                                                               .FirstOrDefault();
+                .SortByDescending(maxValueSelector)
+                .Limit(1)
+                .FirstOrDefault();
         }
 
         /// <summary>
@@ -374,14 +406,16 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="minValueSelector">A property selector to order by ascending.</param>
         /// <param name="partitionKey">An optional partitionKey.</param>
         /// <param name="cancellationToken">An optional cancellation Token.</param>
-        public async virtual Task<TDocument> GetByMinAsync<TDocument, TKey>(Expression<Func<TDocument, bool>> filter, Expression<Func<TDocument, object>> minValueSelector, string partitionKey = null, CancellationToken cancellationToken = default)
+        public virtual async Task<TDocument> GetByMinAsync<TDocument, TKey>(Expression<Func<TDocument, bool>> filter,
+            Expression<Func<TDocument, object>> minValueSelector, string partitionKey = null,
+            CancellationToken cancellationToken = default)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
             return await GetCollection<TDocument, TKey>(partitionKey).Find(Builders<TDocument>.Filter.Where(filter))
-                                                                     .SortBy(minValueSelector)
-                                                                     .Limit(1)
-                                                                     .FirstOrDefaultAsync(cancellationToken);
+                .SortBy(minValueSelector)
+                .Limit(1)
+                .FirstOrDefaultAsync(cancellationToken);
         }
 
         /// <summary>
@@ -392,14 +426,15 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="filter">A LINQ expression filter.</param>
         /// <param name="minValueSelector">A property selector to order by ascending.</param>
         /// <param name="partitionKey">An optional partitionKey.</param>
-        public virtual TDocument GetByMin<TDocument, TKey>(Expression<Func<TDocument, bool>> filter, Expression<Func<TDocument, object>> minValueSelector, string partitionKey = null)
+        public virtual TDocument GetByMin<TDocument, TKey>(Expression<Func<TDocument, bool>> filter,
+            Expression<Func<TDocument, object>> minValueSelector, string partitionKey = null)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
             return GetCollection<TDocument, TKey>(partitionKey).Find(Builders<TDocument>.Filter.Where(filter))
-                                                               .SortBy(minValueSelector)
-                                                               .Limit(1)
-                                                               .FirstOrDefault();
+                .SortBy(minValueSelector)
+                .Limit(1)
+                .FirstOrDefault();
         }
 
         /// <summary>
@@ -412,13 +447,15 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="maxValueSelector">A property selector to order by ascending.</param>
         /// <param name="partitionKey">An optional partitionKey.</param>
         /// <param name="cancellationToken">An optional cancellation Token.</param>
-        public async virtual Task<TValue> GetMaxValueAsync<TDocument, TKey, TValue>(Expression<Func<TDocument, bool>> filter, Expression<Func<TDocument, TValue>> maxValueSelector, string partitionKey = null, CancellationToken cancellationToken = default)
+        public virtual async Task<TValue> GetMaxValueAsync<TDocument, TKey, TValue>(
+            Expression<Func<TDocument, bool>> filter, Expression<Func<TDocument, TValue>> maxValueSelector,
+            string partitionKey = null, CancellationToken cancellationToken = default)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
             return await GetMaxMongoQuery<TDocument, TKey, TValue>(filter, maxValueSelector, partitionKey)
-                                .Project(maxValueSelector)
-                                .FirstOrDefaultAsync(cancellationToken);
+                .Project(maxValueSelector)
+                .FirstOrDefaultAsync(cancellationToken);
         }
 
         /// <summary>
@@ -430,13 +467,14 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="filter">A LINQ expression filter.</param>
         /// <param name="maxValueSelector">A property selector to order by ascending.</param>
         /// <param name="partitionKey">An optional partitionKey.</param>
-        public virtual TValue GetMaxValue<TDocument, TKey, TValue>(Expression<Func<TDocument, bool>> filter, Expression<Func<TDocument, TValue>> maxValueSelector, string partitionKey = null)
+        public virtual TValue GetMaxValue<TDocument, TKey, TValue>(Expression<Func<TDocument, bool>> filter,
+            Expression<Func<TDocument, TValue>> maxValueSelector, string partitionKey = null)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
             return GetMaxMongoQuery<TDocument, TKey, TValue>(filter, maxValueSelector, partitionKey)
-                      .Project(maxValueSelector)
-                      .FirstOrDefault();
+                .Project(maxValueSelector)
+                .FirstOrDefault();
         }
 
         /// <summary>
@@ -449,11 +487,14 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="minValueSelector">A property selector to order by ascending.</param>
         /// <param name="partitionKey">An optional partition key.</param>
         /// <param name="cancellationToken">An optional cancellation Token.</param>
-        public virtual async Task<TValue> GetMinValueAsync<TDocument, TKey, TValue>(Expression<Func<TDocument, bool>> filter, Expression<Func<TDocument, TValue>> minValueSelector, string partitionKey = null, CancellationToken cancellationToken = default)
+        public virtual async Task<TValue> GetMinValueAsync<TDocument, TKey, TValue>(
+            Expression<Func<TDocument, bool>> filter, Expression<Func<TDocument, TValue>> minValueSelector,
+            string partitionKey = null, CancellationToken cancellationToken = default)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
-            return await GetMinMongoQuery<TDocument, TKey, TValue>(filter, minValueSelector, partitionKey).Project(minValueSelector).FirstOrDefaultAsync(cancellationToken);
+            return await GetMinMongoQuery<TDocument, TKey, TValue>(filter, minValueSelector, partitionKey)
+                .Project(minValueSelector).FirstOrDefaultAsync(cancellationToken);
         }
 
         /// <summary>
@@ -465,13 +506,14 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="filter">A LINQ expression filter.</param>
         /// <param name="minValueSelector">A property selector to order by ascending.</param>
         /// <param name="partitionKey">An optional partition key.</param>
-        public virtual TValue GetMinValue<TDocument, TKey, TValue>(Expression<Func<TDocument, bool>> filter, Expression<Func<TDocument, TValue>> minValueSelector, string partitionKey = null)
+        public virtual TValue GetMinValue<TDocument, TKey, TValue>(Expression<Func<TDocument, bool>> filter,
+            Expression<Func<TDocument, TValue>> minValueSelector, string partitionKey = null)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
-            return GetMinMongoQuery<TDocument, TKey, TValue>(filter, minValueSelector, partitionKey).Project(minValueSelector).FirstOrDefault();
+            return GetMinMongoQuery<TDocument, TKey, TValue>(filter, minValueSelector, partitionKey)
+                .Project(minValueSelector).FirstOrDefault();
         }
-
 
         #endregion Min / Max
 
@@ -487,9 +529,9 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="partitionKey">The partition key of your document, if any.</param>
         /// <param name="cancellationToken">An optional cancellation Token.</param>
         public virtual async Task<int> SumByAsync<TDocument, TKey>(Expression<Func<TDocument, bool>> filter,
-                                                       Expression<Func<TDocument, int>> selector,
-                                                       string partitionKey = null,
-                                                       CancellationToken cancellationToken = default)
+            Expression<Func<TDocument, int>> selector,
+            string partitionKey = null,
+            CancellationToken cancellationToken = default)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
@@ -505,8 +547,8 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="selector">The field you want to sum.</param>
         /// <param name="partitionKey">The partition key of your document, if any.</param>
         public virtual int SumBy<TDocument, TKey>(Expression<Func<TDocument, bool>> filter,
-                                                       Expression<Func<TDocument, int>> selector,
-                                                       string partitionKey = null)
+            Expression<Func<TDocument, int>> selector,
+            string partitionKey = null)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
@@ -523,8 +565,8 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="partitionKey">The partition key of your document, if any.</param>
         /// <param name="cancellationToken">An optional cancellation Token.</param>
         public virtual async Task<decimal> SumByAsync<TDocument, TKey>(Expression<Func<TDocument, bool>> filter,
-                                                       Expression<Func<TDocument, decimal>> selector,
-                                                       string partitionKey = null, CancellationToken cancellationToken = default)
+            Expression<Func<TDocument, decimal>> selector,
+            string partitionKey = null, CancellationToken cancellationToken = default)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
@@ -540,8 +582,8 @@ namespace MongoDbGenericRepository.DataAccess.Read
         /// <param name="selector">The field you want to sum.</param>
         /// <param name="partitionKey">The partition key of your document, if any.</param>
         public virtual decimal SumBy<TDocument, TKey>(Expression<Func<TDocument, bool>> filter,
-                                                       Expression<Func<TDocument, decimal>> selector,
-                                                       string partitionKey = null)
+            Expression<Func<TDocument, decimal>> selector,
+            string partitionKey = null)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
@@ -573,10 +615,9 @@ namespace MongoDbGenericRepository.DataAccess.Read
             where TProjection : class, new()
         {
             return HandlePartitioned<TDocument, TKey>(partitionKey)
-                             .Aggregate()
-                             .Group(groupingCriteria, groupProjection)
-                             .ToList();
-
+                .Aggregate()
+                .Group(groupingCriteria, groupProjection)
+                .ToList();
         }
 
         /// <summary>
@@ -596,15 +637,15 @@ namespace MongoDbGenericRepository.DataAccess.Read
             Expression<Func<TDocument, TGroupKey>> selector,
             Expression<Func<IGrouping<TGroupKey, TDocument>, TProjection>> projection,
             string partitionKey = null)
-                where TDocument : IDocument<TKey>
-                where TKey : IEquatable<TKey>
-                where TProjection : class, new()
+            where TDocument : IDocument<TKey>
+            where TKey : IEquatable<TKey>
+            where TProjection : class, new()
         {
             var collection = HandlePartitioned<TDocument, TKey>(partitionKey);
             return collection.Aggregate()
-                             .Match(Builders<TDocument>.Filter.Where(filter))
-                             .Group(selector, projection)
-                             .ToList();
+                .Match(Builders<TDocument>.Filter.Where(filter))
+                .Group(selector, projection)
+                .ToList();
         }
 
         /// <summary>
@@ -626,15 +667,15 @@ namespace MongoDbGenericRepository.DataAccess.Read
             Expression<Func<IGrouping<TGroupKey, TDocument>, TProjection>> projection,
             string partitionKey = null,
             CancellationToken cancellationToken = default)
-                where TDocument : IDocument<TKey>
-                where TKey : IEquatable<TKey>
-                where TProjection : class, new()
+            where TDocument : IDocument<TKey>
+            where TKey : IEquatable<TKey>
+            where TProjection : class, new()
         {
             var collection = HandlePartitioned<TDocument, TKey>(partitionKey);
             return await collection.Aggregate()
-                             .Match(Builders<TDocument>.Filter.Where(filter))
-                             .Group(selector, projection)
-                             .ToListAsync(cancellationToken);
+                .Match(Builders<TDocument>.Filter.Where(filter))
+                .Group(selector, projection)
+                .ToListAsync(cancellationToken);
         }
 
         /// <summary>
@@ -665,11 +706,11 @@ namespace MongoDbGenericRepository.DataAccess.Read
                 : Builders<TDocument>.Sort.Descending(sortSelector);
 
             return await HandlePartitioned<TDocument, TKey>(partitionKey)
-                                    .Find(filter)
-                                    .Sort(sorting)
-                                    .Skip(skipNumber)
-                                    .Limit(takeNumber)
-                                    .ToListAsync(cancellationToken);
+                .Find(filter)
+                .Sort(sorting)
+                .Skip(skipNumber)
+                .Limit(takeNumber)
+                .ToListAsync(cancellationToken);
         }
 
         /// <summary>
@@ -694,11 +735,11 @@ namespace MongoDbGenericRepository.DataAccess.Read
             where TKey : IEquatable<TKey>
         {
             return await HandlePartitioned<TDocument, TKey>(partitionKey)
-                                    .Find(filter)
-                                    .Sort(sortDefinition)
-                                    .Skip(skipNumber)
-                                    .Limit(takeNumber)
-                                    .ToListAsync(cancellationToken);
+                .Find(filter)
+                .Sort(sortDefinition)
+                .Skip(skipNumber)
+                .Limit(takeNumber)
+                .ToListAsync(cancellationToken);
         }
     }
 }

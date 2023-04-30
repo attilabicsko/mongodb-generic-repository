@@ -37,7 +37,7 @@ namespace MongoDbGenericRepository.DataAccess.Base
         /// <param name="filter">The filter definition.</param>
         /// <param name="partitionKey">The collection partition key.</param>
         /// <returns></returns>
-        public virtual IMongoQueryable<TDocument> GetQuery<TDocument, TKey>(Expression<Func<TDocument, bool>> filter, string partitionKey = null)
+        protected virtual IMongoQueryable<TDocument> GetQuery<TDocument, TKey>(Expression<Func<TDocument, bool>> filter, string partitionKey = null)
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
@@ -87,11 +87,7 @@ namespace MongoDbGenericRepository.DataAccess.Base
             where TDocument : IDocument<TKey>
             where TKey : IEquatable<TKey>
         {
-            if (!string.IsNullOrEmpty(partitionKey))
-            {
-                return GetCollection<TDocument, TKey>(partitionKey);
-            }
-            return GetCollection<TDocument, TKey>();
+            return !string.IsNullOrEmpty(partitionKey) ? GetCollection<TDocument, TKey>(partitionKey) : GetCollection<TDocument, TKey>();
         }
 
         /// <summary>

@@ -4,16 +4,23 @@ using System;
 
 namespace CoreIntegrationTests.Infrastructure
 {
+    public static class ConnectionStringManager
+    {
+        public static string MongoDbTests = "mongodb://localhost:27017";
+    }
+
     public interface ITestRepository<TKey> : IBaseMongoRepository<TKey> where TKey : IEquatable<TKey>
     {
         void DropTestCollection<TDocument>();
         void DropTestCollection<TDocument>(string partitionKey);
     }
 
-    public class TestTKeyRepository<TKey> : BaseMongoRepository<TKey>, ITestRepository<TKey> where TKey : IEquatable<TKey>
+    public class TestTKeyRepository<TKey> : BaseMongoRepository<TKey>, ITestRepository<TKey>
+        where TKey : IEquatable<TKey>
     {
-        const string connectionString = "mongodb://localhost:27017/MongoDbTests";
+        private static readonly string connectionString = ConnectionStringManager.MongoDbTests + "/MongoDbTKeyTests";
         private static readonly ITestRepository<TKey> _instance = new TestTKeyRepository<TKey>(connectionString);
+
         /// <inheritdoc />
         private TestTKeyRepository(string connectionString) : base(connectionString)
         {
@@ -21,10 +28,7 @@ namespace CoreIntegrationTests.Infrastructure
 
         public static ITestRepository<TKey> Instance
         {
-            get
-            {
-                return _instance;
-            }
+            get { return _instance; }
         }
 
         public void DropTestCollection<TDocument>()
@@ -43,8 +47,7 @@ namespace CoreIntegrationTests.Infrastructure
     /// </summary>
     public sealed class TestRepository : BaseMongoRepository, ITestRepository
     {
-
-        const string connectionString = "mongodb://localhost:27017";
+        private static readonly string connectionString = ConnectionStringManager.MongoDbTests;
         private static readonly ITestRepository _instance = new TestRepository(connectionString, "MongoDbTests");
 
         // Explicit static constructor to tell C# compiler
@@ -60,10 +63,7 @@ namespace CoreIntegrationTests.Infrastructure
 
         public static ITestRepository Instance
         {
-            get
-            {
-                return _instance;
-            }
+            get { return _instance; }
         }
 
         public void DropTestCollection<TDocument>()
