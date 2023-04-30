@@ -3,6 +3,7 @@ using MongoDbGenericRepository.Attributes;
 using MongoDbGenericRepository.Utils;
 using System.Linq;
 using System.Reflection;
+using MongoDbGenericRepository.Abstractions;
 
 namespace MongoDbGenericRepository
 {
@@ -11,60 +12,59 @@ namespace MongoDbGenericRepository
     /// </summary>
     public class MongoDbContext : IMongoDbContext
     {
-        /// <summary>
-        /// The IMongoClient from the official MongoDB driver
-        /// </summary>
-        public IMongoClient Client { get; }
+        private IMongoDatabase? _database;
+        public IMongoDbClientContext ClientContext { get; }
+
+        protected IMongoClient Client => ClientContext.Client;
 
         /// <summary>
         /// The IMongoDatabase from the official MongoDB driver
         /// </summary>
-        public IMongoDatabase Database { get; }
+        public virtual IMongoDatabase? Database
+        {
+            get => _database ?? throw new MongoDbContextDatabaseNotSetException();
+            set => _database = value;
+        }
 
 
         /// <summary>
-        /// The constructor of the MongoDbContext, it needs an object implementing <see cref="IMongoDatabase"/>.
+        /// The constructor of the MongoDbContext, it needs a client context. Use is there's a child class defining databases per scope.. 
+        /// </summary>
+        /// <param name="clientContext">The client context.</param>
+        public MongoDbContext(IMongoDbClientContext clientContext)
+        {
+            ClientContext = clientContext;
+        }
+
+        /// <summary>
+        /// The constructor of the MongoDbContext, it needs an object implementing <see cref="IMongoDatabase"/> Sets Database explicitly. Use for singleton scope with single database
         /// </summary>
         /// <param name="mongoDatabase">An object implementing IMongoDatabase</param>
         public MongoDbContext(IMongoDatabase mongoDatabase)
         {
-            // Avoid legacy UUID representation: use Binary 0x04 subtype.
-            InitializeGuidRepresentation();
-            Database = mongoDatabase;
-            Client = Database.Client;
+            _database = mongoDatabase;
         }
 
+
         /// <summary>
-        /// The constructor of the MongoDbContext, it needs a connection string and a database name. 
+        /// The constructor of the MongoDbContext, it needs a client context and a database name. Use for singleton scope with single database.
         /// </summary>
-        /// <param name="connectionString">The connections string.</param>
+        /// <param name="clientContext">The client context.</param>
         /// <param name="databaseName">The name of your database.</param>
         public MongoDbContext(string connectionString, string databaseName)
         {
-            InitializeGuidRepresentation();
-            Client = new MongoClient(connectionString);
-            Database = Client.GetDatabase(databaseName);
+            ClientContext = new MongoDbClientContext(connectionString);
+            _database = Client.GetDatabase(databaseName);
         }
 
         /// <summary>
-        /// Initialise an instance of a <see cref="IMongoDbContext"/> using a connection string
+        /// The constructor of the MongoDbContext, it needs a client context and a database name. Use for singleton scope with single database.
         /// </summary>
-        /// <param name="connectionString"></param>
-        public MongoDbContext(string connectionString)
-            : this(connectionString, new MongoUrl(connectionString).DatabaseName)
-        {
-        }
-
-        /// <summary>
-        /// The constructor of the MongoDbContext, it needs a connection string and a database name. 
-        /// </summary>
-        /// <param name="client">The MongoClient.</param>
+        /// <param name="clientContext">The client context.</param>
         /// <param name="databaseName">The name of your database.</param>
-        public MongoDbContext(MongoClient client, string databaseName)
+        public MongoDbContext(IMongoDbClientContext clientContext, string databaseName) : this(clientContext)
         {
-            InitializeGuidRepresentation();
-            Client = client;
-            Database = client.GetDatabase(databaseName);
+            _database = Client.GetDatabase(databaseName);
         }
 
         /// <summary>
@@ -86,14 +86,6 @@ namespace MongoDbGenericRepository
             Database.DropCollection(GetCollectionName<TDocument>(partitionKey));
         }
 
-        /// <summary>
-        /// Sets the Guid representation of the MongoDB Driver.
-        /// </summary>
-        /// <param name="guidRepresentation">The new value of the GuidRepresentation</param>
-        public virtual void SetGuidRepresentation(MongoDB.Bson.GuidRepresentation guidRepresentation)
-        {
-            MongoDefaults.GuidRepresentation = guidRepresentation;
-        }
 
         /// <summary>
         /// Extracts the CollectionName attribute from the entity type, if any.
@@ -103,25 +95,16 @@ namespace MongoDbGenericRepository
         protected virtual string GetAttributeCollectionName<TDocument>()
         {
             return (typeof(TDocument).GetTypeInfo()
-                                     .GetCustomAttributes(typeof(CollectionNameAttribute))
-                                     .FirstOrDefault() as CollectionNameAttribute)?.Name;
+                .GetCustomAttributes(typeof(CollectionNameAttribute))
+                .FirstOrDefault() as CollectionNameAttribute)?.Name;
         }
 
-        /// <summary>
-        /// Initialize the Guid representation of the MongoDB Driver.
-        /// Override this method to change the default GuidRepresentation.
-        /// </summary>
-        protected virtual void InitializeGuidRepresentation()
-        {
-            // by default, avoid legacy UUID representation: use Binary 0x04 subtype.
-            MongoDefaults.GuidRepresentation = MongoDB.Bson.GuidRepresentation.Standard;
-        }
 
         /// <summary>
         /// Given the document type and the partition key, returns the name of the collection it belongs to.
         /// </summary>
         /// <typeparam name="TDocument">The type representing a Document.</typeparam>
-	    /// <param name="partitionKey">The value of the partition key.</param>
+        /// <param name="partitionKey">The value of the partition key.</param>
         /// <returns>The name of the collection.</returns>
         protected virtual string GetCollectionName<TDocument>(string partitionKey)
         {
@@ -130,6 +113,7 @@ namespace MongoDbGenericRepository
             {
                 return collectionName;
             }
+
             return $"{partitionKey}-{collectionName}";
         }
 

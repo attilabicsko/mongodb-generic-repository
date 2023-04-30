@@ -4,6 +4,7 @@ using MongoDbGenericRepository.Models;
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using MongoDbGenericRepository.Abstractions;
 
 namespace MongoDbGenericRepository.DataAccess.Base
 {

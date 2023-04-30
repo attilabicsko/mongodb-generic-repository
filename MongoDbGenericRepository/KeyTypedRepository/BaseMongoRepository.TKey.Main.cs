@@ -1,6 +1,7 @@
 ﻿using MongoDB.Driver;
 using MongoDbGenericRepository.Models;
 using System;
+using MongoDbGenericRepository.Abstractions;
 
 namespace MongoDbGenericRepository
 {
